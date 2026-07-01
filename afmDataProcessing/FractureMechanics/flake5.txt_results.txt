@@ -1,0 +1,6 @@
+For flake5.txt:
+Mean amplitude: 7.94e-07 +/- 6.64e-08 
+Mean wavelength: 6.28e-06 +/- 8.78e-07
+Mean adhesion energy: 3.22e+00 +/- 8.72e+00
+Adhesion energy from means: 2.64e+00
+Greatest length term: 1.62e+01
