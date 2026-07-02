@@ -8,6 +8,8 @@ import numpy as np
 import ruptures as rpt
 import matplotlib.pyplot as plt
 import scipy.optimize as sp
+import json
+from pathlib import Path
 #import Gwyddion data
 from math import pi
 
@@ -35,6 +37,12 @@ def adhesion(length, thickness, wvlength, amplitude):
     return adhesion_energy,aEnergy_1stTerm, aEnergy_2ndTerm,aEnergy_3rdTerm
 
 input_file = input("Data file name? : ")
+input_dir = Path('DataMatrices/')
+input_file_Path = Path(input_dir/ input_file)
+input_file_stem = input_file_Path.stem
+output_dir = Path(f'Outputs/{input_file_stem}')
+output_dir.mkdir(parents=True, exist_ok=True)
+
 thickness =int(input("Thickness of the flake (in nm)?: "))
 thickness *= 10**(-9)
 length = 10*10**(-6) #standard length
@@ -42,7 +50,7 @@ pixel_width = float(input("Width of pixel(in microns)?:"))
 pixel_width *= 10**(-6)
 
 #get x coordinate data
-data = np.loadtxt(input_file)
+data = np.loadtxt(input_file_Path)
 
 nx = data.shape[1]
 x_values = np.arange(nx) * pixel_width
@@ -62,10 +70,11 @@ for row in data:
         A_guess = np.max(row) - np.median(row)
         baseline = np.median(row)
         guess = [bp1, bp2, A_guess, 0, baseline, 0, baseline]
-        lower = [x_values[0], bp1,  0,      -np.inf, 0,       -np.inf, 0      ]
+        lower = [x_values[0], bp1,  -20,      -np.inf, -20,       -np.inf, -20     ]
         upper = [bp2,x_values[-1],  np.inf,  np.inf, np.inf,   np.inf, np.inf ]
-        popt, pcov = sp.curve_fit(piecewise_wrinkle, x_values , row, p0=guess, bounds=(lower,upper))
 
+        popt, pcov = sp.curve_fit(piecewise_wrinkle, x_values , row, p0=guess, bounds=(lower,upper))
+        
         #extract measurements
         lam = popt[1] - popt[0]
         amp = popt[2]
@@ -91,8 +100,9 @@ mean_wavelength = np.mean(wavelengths)
 mean_adhesion_energy = np.mean(AdhesionEnergies)
 adhesion_energy_from_mean =  adhesion(length, thickness, mean_wavelength,mean_amplitude)
 greatest_first_term = np.max(length_terms)
-
-with open(f'{input_file}_results.txt', 'w') as f:
+with open(output_dir/ f'{input_file_stem}_fit_results.json','w') as f:
+    json.dump(results,f,indent=2)
+with open(output_dir/ f'{input_file_stem}_results.txt', 'w') as f:
     f.write(f"For {input_file}:\n")
     f.write(f"Mean amplitude: {mean_amplitude:.2e} +/- {np.std(amplitudes):.2e} \n")
     f.write(f"Mean wavelength: {mean_wavelength:.2e} +/- {np.std(wavelengths):.2e}\n")
