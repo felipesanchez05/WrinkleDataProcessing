@@ -5,7 +5,8 @@ function profiles = fitProfiles(dataMatrix, pixelWidth, logFcn, progressFcn)
 %
 %   profiles = FITPROFILES(dataMatrix, pixelWidth) fits every row of
 %   dataMatrix (nRows x nCols) to piecewiseWrinkle and returns a struct
-%   array with fields A and wavelength, one entry per row that converged.
+%   array with fields A, wavelength, R2 and params (the full fitted
+%   parameter set), one entry per row that converged.
 %
 %   profiles = FITPROFILES(dataMatrix, pixelWidth, logFcn, progressFcn)
 %   additionally routes convergence-failure messages through
@@ -28,6 +29,13 @@ if nargin < 4
     progressFcn = [];
 end
 
+% Bump only when piecewiseWrinkle or the fitting procedure itself changes
+% (i.e. anything that would change popt for a given row). Downstream
+% calculations (adhesion formulas, R2, future stats) never need this bumped.
+FIT_VERSION = 1; %#ok<NASGU>
+
+paramNames = {'firstBreakpoint', 'secondBreakpoint', 'A', 'mLeft', 'bLeft', 'mRight', 'bRight'};
+
 [nRows, nCols] = size(dataMatrix);
 xValues = (0:nCols - 1) * pixelWidth;
 
@@ -36,7 +44,7 @@ ub = [xValues(end), xValues(end), Inf, Inf, Inf, Inf, Inf];
 
 options = optimoptions('lsqcurvefit', 'Display', 'off');
 
-profiles = struct('A', {}, 'wavelength', {});
+profiles = struct('A', {}, 'wavelength', {}, 'R2', {}, 'params', {});
 guess = [];
 
 for i = 1:nRows
@@ -56,7 +64,17 @@ for i = 1:nRows
     else
         lam = popt(2) - popt(1);
         amp = popt(3);
-        profiles(end + 1) = struct('A', amp, 'wavelength', lam); %#ok<AGROW>
+
+        % Cheap to compute here (row/popt already in hand); storing it now means
+        % this and any future post-fit diagnostic never has to redo lsqcurvefit.
+        yfit = piecewiseWrinkle(popt, xValues);
+        residuals = row - yfit;
+        ssRes = sum(residuals .^ 2);
+        ssTot = sum((row - mean(row)) .^ 2);
+        r2 = 1 - ssRes / ssTot;
+
+        profiles(end + 1) = struct('A', amp, 'wavelength', lam, 'R2', r2, ...
+            'params', cell2struct(num2cell(popt(:)), paramNames(:), 1)); %#ok<AGROW>
         guess = popt;
     end
 

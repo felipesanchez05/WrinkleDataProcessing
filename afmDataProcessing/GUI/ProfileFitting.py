@@ -9,6 +9,13 @@ import ruptures as rpt
 import scipy.optimize as sp
 from math import pi
 
+# Bump only when piecewise_wrinkle or the fitting procedure itself changes
+# (i.e. anything that would change popt for a given row). Downstream
+# calculations (adhesion formulas, R2, future stats) never need this bumped.
+FIT_VERSION = 1
+
+PARAM_NAMES = ('first_breakpoint', 'second_breakpoint', 'A', 'm_left', 'b_left', 'm_right', 'b_right')
+
 
 def piecewise_wrinkle(x, first_breakpoint, second_breakpoint, A, m_left, b_left, m_right, b_right):
     y = np.zeros_like(x)
@@ -65,7 +72,20 @@ def fit_profiles(data_matrix, pixel_width, progress_callback=None, log_callback=
             lam = popt[1] - popt[0]
             amp = popt[2]
 
-            profiles.append({'A': amp, 'wavelength': lam})
+            # Cheap to compute here (row/popt already in hand); storing it now means
+            # this and any future post-fit diagnostic never has to redo curve_fit.
+            yfit = piecewise_wrinkle(x_values, *popt)
+            residuals = row - yfit
+            SS_res = np.sum(residuals ** 2)
+            SS_tot = np.sum((row - np.mean(row)) ** 2)
+            R2 = 1 - SS_res / SS_tot
+
+            profiles.append({
+                'A': amp,
+                'wavelength': lam,
+                'R2': R2,
+                'params': dict(zip(PARAM_NAMES, popt.tolist())),
+            })
             guess = popt
         except RuntimeError:
             log_callback(f"Row {i}: failed to converge")

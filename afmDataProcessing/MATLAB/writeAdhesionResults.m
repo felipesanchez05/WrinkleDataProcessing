@@ -14,6 +14,7 @@ amplitudes = [results.A];
 wavelengths = [results.wavelength];
 adhesionEnergies = [results.AdhesionEnergy];
 lengthTerms = [results.lengthTerm];
+r2 = [results.R2];
 
 if ~exist(outputDir, 'dir')
     mkdir(outputDir);
@@ -30,6 +31,8 @@ fprintf(fid, 'Mean wavelength: %.2e +/- %.2e\n', mean(wavelengths), std(waveleng
 fprintf(fid, 'Mean adhesion energy: %.2e +/- %.2e\n', mean(adhesionEnergies), std(adhesionEnergies, 1));
 fprintf(fid, 'Adhesion energy from means: %.2e\n', adhesionEnergyFromMean);
 fprintf(fid, 'Greatest length term: %.2e\n', max(lengthTerms));
+fprintf(fid, 'Mean R squared: %.3f +/- %.3f ; The largest R squared: %.3f\n', ...
+    mean(r2), std(r2, 1), max(r2));
 fclose(fid);
 
 end
