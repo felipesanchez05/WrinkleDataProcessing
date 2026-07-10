@@ -81,9 +81,13 @@ for row in tqdm(data):
 
         #calculate energy
         adhesionE = adhesion(length, thickness, lam, amp) #returns [adhesion energy, first term, second term, third term]
-
-        #append results
-        results.append({'A':amp, "wavelength":lam, "Adhesion energy":adhesionE[0] ,"length terms":adhesionE[1]})
+        yfit = piecewise_wrinkle(x_values, *popt)
+        residuals = row - yfit
+        SS_res = np.sum(residuals**2)
+        SS_tot = np.sum((row - np.mean(row))**2)
+        R2 = 1 - SS_res / SS_tot
+                #append results
+        results.append({'A':amp, "wavelength":lam, "Adhesion energy":adhesionE[0] ,"length terms":adhesionE[1],"R2":R2})
     except RuntimeError:
         print("Failure to converge")
         
@@ -94,12 +98,14 @@ amplitudes = [r['A'] for r in results]
 wavelengths = [r['wavelength'] for r in results]
 AdhesionEnergies = [r['Adhesion energy'] for r in results]
 length_terms = [r['length terms'] for r in results]
-
+r2 = [r['R2'] for r in results]
 mean_amplitude = np.mean(amplitudes)
 mean_wavelength = np.mean(wavelengths)
 mean_adhesion_energy = np.mean(AdhesionEnergies)
 adhesion_energy_from_mean =  adhesion(length, thickness, mean_wavelength,mean_amplitude)
 greatest_first_term = np.max(length_terms)
+mean_rsquared = np.mean(r2)
+largest_rsquared = np.max(r2)
 with open(output_dir/ f'{input_file_stem}_fit_results.json','w') as f:
     json.dump(results,f,indent=2)
 with open(output_dir/ f'{input_file_stem}_results.txt', 'w') as f:
@@ -109,4 +115,4 @@ with open(output_dir/ f'{input_file_stem}_results.txt', 'w') as f:
     f.write(f"Mean adhesion energy: {mean_adhesion_energy:.2e} +/- {np.std(AdhesionEnergies):.2e}\n")
     f.write(f"Adhesion energy from means: {adhesion_energy_from_mean[0]:.2e}\n")
     f.write(f"Greatest length term: {greatest_first_term:.2e}\n")
-
+    f.write(f"Mean R squared: {mean_rsquared:.3f} +/- {np.std(r2):.3f} ; The largest R squared: {largest_rsquared:.3f}\n")

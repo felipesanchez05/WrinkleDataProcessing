@@ -4,3 +4,4 @@ Mean wavelength: 1.60e-06 +/- 8.12e-08
 Mean adhesion energy: 9.89e-01 +/- 3.51e-01
 Adhesion energy from means: 9.40e-01
 Greatest length term: 7.57e-13
+Mean R squared: 0.971 +/- 0.002 ; The largest R squared: 0.977
