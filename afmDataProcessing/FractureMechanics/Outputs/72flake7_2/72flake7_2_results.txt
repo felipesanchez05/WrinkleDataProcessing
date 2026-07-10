@@ -1,0 +1,6 @@
+For 72flake7_2.txt:
+Mean amplitude: 1.51e-07 +/- 6.77e-09 
+Mean wavelength: 3.71e-06 +/- 1.10e-07
+Mean adhesion energy: 3.34e+00 +/- 2.10e-01
+Adhesion energy from means: 3.34e+00
+Greatest length term: 1.62e+01

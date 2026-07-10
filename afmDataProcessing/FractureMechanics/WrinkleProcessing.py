@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 #import Gwyddion data
 from math import pi
-
+from tqdm import tqdm
 def piecewise_wrinkle(x,first_breakpoint,second_breakpoint, A, m_left, b_left, m_right, b_right):
     y = np.zeros_like(x)
     left_mask = x < first_breakpoint
@@ -60,7 +60,7 @@ nx = data.shape[1]
 x_values = np.arange(nx) * pixel_width
 
 results = []
-for row in data:
+for row in tqdm(data):
     try:    
         dydx = np.gradient(row)
         algo = rpt.Dynp(model='rbf').fit(dydx)

@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 #import Gwyddion data
 from math import pi
-
+from tqdm import tqdm
 def piecewise_wrinkle(x,first_breakpoint,second_breakpoint, A, m_left, b_left, m_right, b_right):
     y = np.zeros_like(x)
     left_mask = x < first_breakpoint
@@ -27,7 +27,7 @@ def piecewise_wrinkle(x,first_breakpoint,second_breakpoint, A, m_left, b_left, m
 
     return y
 E = 5.7*10**9
-strain = 0.03
+strain = 0.0255
 def adhesion(length, thickness, wvlength, amplitude):
     aEnergy_1stTerm = ( (pi**4) * (amplitude**4) * (E)* thickness) / (16 * (wvlength) * length)
     aEnergy_2ndTerm = ( (strain) * (pi**2) * (amplitude**2) * E * thickness ) / (4 * (wvlength**2))
@@ -56,7 +56,7 @@ nx = data.shape[1]
 x_values = np.arange(nx) * pixel_width
 
 results = []
-for row in data:
+for row in tqdm(data):
     try:    
         dydx = np.gradient(row)
         algo = rpt.Dynp(model='rbf').fit(dydx)

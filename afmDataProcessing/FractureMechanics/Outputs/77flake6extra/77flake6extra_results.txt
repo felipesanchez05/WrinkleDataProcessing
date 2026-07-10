@@ -1,0 +1,6 @@
+For 77flake6extra.txt:
+Mean amplitude: 3.46e-08 +/- 1.60e-08 
+Mean wavelength: 5.38e-07 +/- 1.05e-07
+Mean adhesion energy: 5.59e-01 +/- 1.77e+00
+Adhesion energy from means: 9.77e-02
+Greatest length term: 1.62e+01
