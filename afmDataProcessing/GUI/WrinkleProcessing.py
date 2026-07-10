@@ -5,28 +5,12 @@ Created on Tue Jun 30 11:21:25 2026
 @author: felsa
 """
 import numpy as np
-import ruptures as rpt
-import matplotlib.pyplot as plt
-import scipy.optimize as sp
 import json
 from pathlib import Path
-#import Gwyddion data
 from math import pi
-from tkinter import ttk
 
-def piecewise_wrinkle(x,first_breakpoint,second_breakpoint, A, m_left, b_left, m_right, b_right):
-    y = np.zeros_like(x)
-    left_mask = x < first_breakpoint
-    right_mask = x > second_breakpoint
-    wrinkle_mask = (x >= first_breakpoint) & (x <= second_breakpoint)
-    y[left_mask] = m_left * x[left_mask] + b_left
-    y[right_mask] = m_right * x[right_mask] + b_right
-    lam = second_breakpoint - first_breakpoint
-    base = m_left * first_breakpoint + b_left
-    midpoint = (first_breakpoint + second_breakpoint) / 2
-    y[wrinkle_mask] = base + (A/2) * (1 + np.cos(2 * pi * (x[wrinkle_mask] - midpoint) / lam))
+from ProfileFitting import fit_profiles
 
-    return y
 def adhesion(length, thickness, wvlength, amplitude):
     aEnergy_1stTerm = ( (pi**4) * (amplitude**4) * (E)* thickness) / (16 * (wvlength) * length)
     aEnergy_2ndTerm = ( (strain) * (pi**2) * (amplitude**2) * E * thickness ) / (4 * (wvlength**2))
@@ -36,46 +20,18 @@ def adhesion(length, thickness, wvlength, amplitude):
     return adhesion_energy,aEnergy_1stTerm, aEnergy_2ndTerm,aEnergy_3rdTerm
 
 
-def fit_data_energy(data_matrix, pixel_width, length, thickness, progress_callback=None, log_callback=print):
+def compute_energies(profiles, length, thickness):
     results = []
-    #get x coordinate data
-
-    nx = data_matrix.shape[1]
-    x_values = np.arange(nx) * pixel_width
-    total_rows = data_matrix.shape[0]
-    for i, row in enumerate(data_matrix):
-        try:
-            dydx = np.gradient(row)
-            algo = rpt.Dynp(model='rbf').fit(dydx)
-            breakpoints = algo.predict(n_bkps=2)
-            #fit data
-            bp1_id = breakpoints[0]
-            bp2_id = breakpoints[1] - 1
-            bp1 = x_values[bp1_id]
-            bp2 = x_values[bp2_id]
-
-            A_guess = np.max(row) - np.median(row)
-            baseline = np.median(row)
-            guess = [bp1, bp2, A_guess, 0, baseline, 0, baseline]
-            lower = [x_values[0], bp1,  -20,      -np.inf, -20,       -np.inf, -20     ]
-            upper = [bp2,x_values[-1],  np.inf,  np.inf, np.inf,   np.inf, np.inf ]
-
-            popt, pcov = sp.curve_fit(piecewise_wrinkle, x_values , row, p0=guess, bounds=(lower,upper))
-            
-            #extract measurements
-            lam = popt[1] - popt[0]
-            amp = popt[2]
-
-            #calculate energy
-            adhesionE = adhesion(length, thickness, lam, amp) #returns [adhesion energy, first term, second term, third term]
-
-            #append results
-            results.append({'A':amp, "wavelength":lam, "Adhesion energy":adhesionE[0] ,"length terms":adhesionE[1]})
-        except RuntimeError:
-            log_callback(f"Row {i}: failed to converge")
-        if progress_callback:
-            progress_callback(i + 1, total_rows)
+    for profile in profiles:
+        amp = profile['A']
+        lam = profile['wavelength']
+        adhesionE = adhesion(length, thickness, lam, amp) #returns [adhesion energy, first term, second term, third term]
+        results.append({'A':amp, "wavelength":lam, "Adhesion energy":adhesionE[0] ,"length terms":adhesionE[1]})
     return results
+
+def fit_data_energy(data_matrix, pixel_width, length, thickness, progress_callback=None, log_callback=print):
+    profiles = fit_profiles(data_matrix, pixel_width, progress_callback=progress_callback, log_callback=log_callback)
+    return compute_energies(profiles, length, thickness)
 
 def write_results(results, output_dir, input_file_stem, length, thickness):
     if not results:

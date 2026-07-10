@@ -6,7 +6,9 @@ import queue
 
 import numpy as np
 
-from WrinkleProcessing import fit_data_energy, write_results
+from ProfileFitting import fit_profiles
+from WrinkleProcessing import compute_energies as wrinkle_compute_energies, write_results as wrinkle_write_results
+from FractureMechanics import compute_energies as fracture_compute_energies, write_results as fracture_write_results
 
 LENGTH = 10e-6  # standard flake length in meters, matches WrinkleProcessing.py
 
@@ -33,14 +35,25 @@ def report_progress(done, total):
     gui_queue.put(('progress', done, total))
 
 
-def process_in_background(input_path, output_dir, thickness, pixel_width):
+def process_in_background(input_path, output_dir, thickness, pixel_width, run_wrinkle, run_fracture):
     try:
         data = np.loadtxt(input_path)
-        results = fit_data_energy(
-            data, pixel_width, LENGTH, thickness,
-            progress_callback=report_progress, log_callback=log,
-        )
-        write_results(results, output_dir, input_path.stem, LENGTH, thickness)
+
+        log("Fitting wrinkle profiles...")
+        profiles = fit_profiles(data, pixel_width, progress_callback=report_progress, log_callback=log)
+
+        if run_wrinkle:
+            log("Computing wrinkle adhesion energy...")
+            results = wrinkle_compute_energies(profiles, LENGTH, thickness)
+            wrinkle_write_results(results, output_dir, f"{input_path.stem}_wrinkle", LENGTH, thickness)
+            log("Wrinkle analysis complete.")
+
+        if run_fracture:
+            log("Computing fracture mechanics adhesion energy...")
+            results = fracture_compute_energies(profiles, thickness)
+            fracture_write_results(results, output_dir, f"{input_path.stem}_fracture", thickness)
+            log("Fracture mechanics analysis complete.")
+
         gui_queue.put(('done', str(output_dir)))
     except Exception as exc:
         gui_queue.put(('error', str(exc)))
@@ -56,6 +69,11 @@ def run():
     if not output_dir:
         messagebox.showerror("Missing output", "Please select an output folder.")
         return
+    run_wrinkle = wrinkle_var.get()
+    run_fracture = fracture_var.get()
+    if not run_wrinkle and not run_fracture:
+        messagebox.showerror("Missing method", "Please select at least one analysis method.")
+        return
     try:
         thickness = float(thickness_var.get()) * 1e-9
         pixel_width = float(pixel_width_var.get()) * 1e-6
@@ -70,7 +88,7 @@ def run():
 
     thread = threading.Thread(
         target=process_in_background,
-        args=(Path(input_file), Path(output_dir), thickness, pixel_width),
+        args=(Path(input_file), Path(output_dir), thickness, pixel_width, run_wrinkle, run_fracture),
         daemon=True,
     )
     thread.start()
@@ -109,6 +127,8 @@ input_file_var = tk.StringVar()
 output_dir_var = tk.StringVar()
 thickness_var = tk.StringVar()
 pixel_width_var = tk.StringVar()
+wrinkle_var = tk.BooleanVar(value=True)
+fracture_var = tk.BooleanVar(value=False)
 
 tk.Label(root, text="Data file:").grid(row=0, column=0, sticky='e', padx=5, pady=5)
 tk.Entry(root, textvariable=input_file_var, width=50, state='readonly').grid(row=0, column=1, padx=5, pady=5)
@@ -124,14 +144,20 @@ tk.Entry(root, textvariable=thickness_var, width=15).grid(row=2, column=1, stick
 tk.Label(root, text="Pixel width (microns):").grid(row=3, column=0, sticky='e', padx=5, pady=5)
 tk.Entry(root, textvariable=pixel_width_var, width=15).grid(row=3, column=1, sticky='w', padx=5, pady=5)
 
+tk.Label(root, text="Analysis method:").grid(row=4, column=0, sticky='e', padx=5, pady=5)
+method_frame = tk.Frame(root)
+method_frame.grid(row=4, column=1, sticky='w', padx=5, pady=5)
+ttk.Checkbutton(method_frame, text="Wrinkle Processing", variable=wrinkle_var).pack(side='left')
+ttk.Checkbutton(method_frame, text="Fracture Mechanics", variable=fracture_var).pack(side='left', padx=(10, 0))
+
 run_button = tk.Button(root, text="Run", command=run)
-run_button.grid(row=4, column=0, padx=5, pady=10)
+run_button.grid(row=5, column=0, padx=5, pady=10)
 
 progress = ttk.Progressbar(root, orient='horizontal', length=300, mode='determinate')
-progress.grid(row=4, column=1, columnspan=2, padx=5, pady=10, sticky='we')
+progress.grid(row=5, column=1, columnspan=2, padx=5, pady=10, sticky='we')
 
 log_box = scrolledtext.ScrolledText(root, width=70, height=12)
-log_box.grid(row=5, column=0, columnspan=3, padx=5, pady=5)
+log_box.grid(row=6, column=0, columnspan=3, padx=5, pady=5)
 
 root.after(100, poll_queue)
 root.mainloop()
