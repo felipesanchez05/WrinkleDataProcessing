@@ -2,15 +2,16 @@ import json
 import scipy.stats
 import matplotlib.pyplot as plt
 from pathlib import Path
-
+import numpy as np
 input_file = input("Data file name: ")
 input_file_path = Path(input_file)
 input_file_stem = input_file_path.stem
 in_out_dir = Path(f'Outputs/{input_file_stem}')
 with open(in_out_dir/f'{input_file_stem}_fit_results.json','r') as f:
     data = json.load(f)
+outliers = [r['Adhesion energy'] for r in data]
 
-AE_threshold = 10  # J/m², adjust based on what's physically reasonable
+AE_threshold = np.mean(outliers)*4  # J/m², adjust based on what's physically reasonable
 clean = [r for r in data if r['Adhesion energy'] < AE_threshold]
 print(f"Removed {len(data) - len(clean)} extreme outliers")
 
