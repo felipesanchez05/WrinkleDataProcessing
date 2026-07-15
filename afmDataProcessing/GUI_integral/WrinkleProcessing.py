@@ -9,34 +9,21 @@ Created on Tue Jun 30 11:21:25 2026
 import numpy as np
 import json
 from pathlib import Path
-from math import pi
 
 from ProfileFitting import fit_profiles
-
-def adhesion(length, thickness, wvlength, amplitude):
-    """
-    Function which takes flake dimensions as inputs to calculate adhesion energy
-    Saves each term separately in addition to adhesion energy to compare magnitude of length term later
-    """
-    aEnergy_1stTerm = ( (pi**4) * (amplitude**4) * (E)* thickness) / (16 * (wvlength) * length)
-    aEnergy_2ndTerm = ( (strain) * (pi**2) * (amplitude**2) * E * thickness ) / (4 * (wvlength**2))
-    aEnergy_3rdTerm = ( (pi**4) * (amplitude**2) * E * (thickness**3)) / (4 * wvlength**4)
-
-    adhesion_energy = aEnergy_1stTerm - aEnergy_2ndTerm + aEnergy_3rdTerm
-    return adhesion_energy,aEnergy_1stTerm, aEnergy_2ndTerm,aEnergy_3rdTerm
-
+from gamma_batch_eval import gamma_numeric
 
 def compute_energies(profiles, length, thickness):
     """
-    Function takes as input the fitted profile paramters from curve fitting to compute adhesion energy 
+    Function takes as input the fitted profile paramters from curve fitting to compute adhesion energy
     Profiles input is a list of dictionaries
     """
     results = [] #creates empy list to store result values
-    for profile in profiles: #loops through each profile 
-        amp = profile['A'] #set variable to amplitude value 
+    for profile in profiles: #loops through each profile
+        amp = profile['A'] #set variable to amplitude value
         lam = profile['wavelength'] #set variable to wavelength value
-        adhesionE = adhesion(length, thickness, lam, amp) #returns [adhesion energy, first term, second term, third term]
-        results.append({'A':amp, "wavelength":lam, "Adhesion energy":adhesionE[0] ,"length terms":adhesionE[1], "R2":profile['R2']}) #add calculated value to results list
+        adhesionE = gamma_numeric(lam,amp,thickness)
+        results.append({'A':amp, "wavelength":lam, "Adhesion energy":adhesionE, "R2":profile['R2']}) #add calculated value to results list
     return results
 
 def fit_data_energy(data_matrix, pixel_width, length, thickness, progress_callback=None, log_callback=print):
@@ -58,7 +45,6 @@ def write_results(results, output_dir, input_file_stem, length, thickness):
     amplitudes = [r['A'] for r in results]
     wavelengths = [r['wavelength'] for r in results]
     AdhesionEnergies = [r['Adhesion energy'] for r in results]
-    length_terms = [r['length terms'] for r in results]
     r2 = [r['R2'] for r in results]
 
     #Uses numpy to find means
@@ -66,13 +52,12 @@ def write_results(results, output_dir, input_file_stem, length, thickness):
     mean_wavelength = np.mean(wavelengths)
     mean_adhesion_energy = np.mean(AdhesionEnergies)
     
-    #calls adhesion function using mean values
-    adhesion_energy_from_mean =  adhesion(length, thickness, mean_wavelength,mean_amplitude)
-    greatest_first_term = np.max(length_terms) #finds the largest length term
+    #calls gamma_numeric using mean values
+    adhesion_energy_from_mean = gamma_numeric(mean_wavelength, mean_amplitude, thickness)
     mean_rsquared = np.mean(r2)
     largest_rsquared = np.max(r2)
-    
-    #The block creates andwrites results 
+
+    #The block creates andwrites results
     with open(output_dir/ f'{input_file_stem}_fit_results.json','w') as f:
         json.dump(results,f,indent=2) #uses dump from json library to write out results library unto a json file
     with open(output_dir/ f'{input_file_stem}_results.txt', 'w') as f:
@@ -83,13 +68,8 @@ def write_results(results, output_dir, input_file_stem, length, thickness):
         f.write(f"Mean amplitude: {mean_amplitude:.2e} +/- {np.std(amplitudes):.2e} \n")
         f.write(f"Mean wavelength: {mean_wavelength:.2e} +/- {np.std(wavelengths):.2e}\n")
         f.write(f"Mean adhesion energy: {mean_adhesion_energy:.2e} +/- {np.std(AdhesionEnergies):.2e}\n")
-        f.write(f"Adhesion energy from means: {adhesion_energy_from_mean[0]:.2e}\n")
-        f.write(f"Greatest length term: {greatest_first_term:.2e}\n")
+        f.write(f"Adhesion energy from means: {adhesion_energy_from_mean:.2e}\n")
         f.write(f"Mean R squared: {mean_rsquared:.3f} +/- {np.std(r2):.3f} ; The largest R squared: {largest_rsquared:.3f}\n")
-
-#hard coded values
-E = 5.7*10**9
-strain = 0.0255
 
 if __name__ == '__main__':
     """
