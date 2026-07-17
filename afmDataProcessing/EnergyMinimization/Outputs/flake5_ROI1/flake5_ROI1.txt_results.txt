@@ -1,6 +1,0 @@
-For flake5_ROI1.txt:
-Mean amplitude: 8.27e-07 +/- 3.17e-08 
-Mean wavelength: 6.32e-06 +/- 2.75e-07
-Mean adhesion energy: 9.50e-01 +/- 3.21e-01
-Adhesion energy from means: 9.24e-01
-Greatest length term: 1.28e-10

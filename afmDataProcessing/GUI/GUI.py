@@ -35,7 +35,7 @@ def report_progress(done, total):
     gui_queue.put(('progress', done, total))
 
 
-def process_in_background(input_path, output_dir, thickness, pixel_width, run_wrinkle, run_fracture):
+def process_in_background(input_path, output_dir, thickness, pixel_width, strain, run_wrinkle, run_fracture):
     try:
         data = np.loadtxt(input_path)
 
@@ -44,8 +44,8 @@ def process_in_background(input_path, output_dir, thickness, pixel_width, run_wr
 
         if run_wrinkle:
             log("Computing wrinkle adhesion energy...")
-            results = wrinkle_compute_energies(profiles, LENGTH, thickness)
-            wrinkle_write_results(results, output_dir, f"{input_path.stem}_wrinkle", LENGTH, thickness)
+            results = wrinkle_compute_energies(profiles, LENGTH, thickness, strain)
+            wrinkle_write_results(results, output_dir, f"{input_path.stem}_wrinkle", LENGTH, thickness, strain)
             log("Wrinkle analysis complete.")
 
         if run_fracture:
@@ -81,6 +81,14 @@ def run():
         messagebox.showerror("Invalid input", "Thickness and pixel width must be numbers.")
         return
 
+    strain = 0.0
+    if run_wrinkle:
+        try:
+            strain = float(strain_var.get())
+        except ValueError:
+            messagebox.showerror("Invalid input", "Strain must be a number.")
+            return
+
     run_button['state'] = 'disabled'
     progress['value'] = 0
     log_box.delete('1.0', tk.END)
@@ -88,7 +96,7 @@ def run():
 
     thread = threading.Thread(
         target=process_in_background,
-        args=(Path(input_file), Path(output_dir), thickness, pixel_width, run_wrinkle, run_fracture),
+        args=(Path(input_file), Path(output_dir), thickness, pixel_width, strain, run_wrinkle, run_fracture),
         daemon=True,
     )
     thread.start()
@@ -127,6 +135,7 @@ input_file_var = tk.StringVar()
 output_dir_var = tk.StringVar()
 thickness_var = tk.StringVar()
 pixel_width_var = tk.StringVar()
+strain_var = tk.StringVar(value="0.0101")
 wrinkle_var = tk.BooleanVar(value=True)
 fracture_var = tk.BooleanVar(value=False)
 
@@ -144,20 +153,23 @@ tk.Entry(root, textvariable=thickness_var, width=15).grid(row=2, column=1, stick
 tk.Label(root, text="Pixel width (microns):").grid(row=3, column=0, sticky='e', padx=5, pady=5)
 tk.Entry(root, textvariable=pixel_width_var, width=15).grid(row=3, column=1, sticky='w', padx=5, pady=5)
 
-tk.Label(root, text="Analysis method:").grid(row=4, column=0, sticky='e', padx=5, pady=5)
+tk.Label(root, text="Strain (wrinkle only):").grid(row=4, column=0, sticky='e', padx=5, pady=5)
+tk.Entry(root, textvariable=strain_var, width=15).grid(row=4, column=1, sticky='w', padx=5, pady=5)
+
+tk.Label(root, text="Analysis method:").grid(row=5, column=0, sticky='e', padx=5, pady=5)
 method_frame = tk.Frame(root)
-method_frame.grid(row=4, column=1, sticky='w', padx=5, pady=5)
+method_frame.grid(row=5, column=1, sticky='w', padx=5, pady=5)
 ttk.Checkbutton(method_frame, text="Wrinkle Processing", variable=wrinkle_var).pack(side='left')
 ttk.Checkbutton(method_frame, text="Fracture Mechanics", variable=fracture_var).pack(side='left', padx=(10, 0))
 
 run_button = tk.Button(root, text="Run", command=run)
-run_button.grid(row=5, column=0, padx=5, pady=10)
+run_button.grid(row=6, column=0, padx=5, pady=10)
 
 progress = ttk.Progressbar(root, orient='horizontal', length=300, mode='determinate')
-progress.grid(row=5, column=1, columnspan=2, padx=5, pady=10, sticky='we')
+progress.grid(row=6, column=1, columnspan=2, padx=5, pady=10, sticky='we')
 
 log_box = scrolledtext.ScrolledText(root, width=70, height=12)
-log_box.grid(row=6, column=0, columnspan=3, padx=5, pady=5)
+log_box.grid(row=7, column=0, columnspan=3, padx=5, pady=5)
 
 root.after(100, poll_queue)
 root.mainloop()

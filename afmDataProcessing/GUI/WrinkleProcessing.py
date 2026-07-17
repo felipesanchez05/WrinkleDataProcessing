@@ -13,7 +13,7 @@ from math import pi
 
 from ProfileFitting import fit_profiles
 
-def adhesion(length, thickness, wvlength, amplitude):
+def adhesion(length, thickness, wvlength, amplitude, strain):
     """
     Function which takes flake dimensions as inputs to calculate adhesion energy
     Saves each term separately in addition to adhesion energy to compare magnitude of length term later
@@ -26,27 +26,27 @@ def adhesion(length, thickness, wvlength, amplitude):
     return adhesion_energy,aEnergy_1stTerm, aEnergy_2ndTerm,aEnergy_3rdTerm
 
 
-def compute_energies(profiles, length, thickness):
+def compute_energies(profiles, length, thickness, strain):
     """
-    Function takes as input the fitted profile paramters from curve fitting to compute adhesion energy 
+    Function takes as input the fitted profile paramters from curve fitting to compute adhesion energy
     Profiles input is a list of dictionaries
     """
     results = [] #creates empy list to store result values
-    for profile in profiles: #loops through each profile 
-        amp = profile['A'] #set variable to amplitude value 
+    for profile in profiles: #loops through each profile
+        amp = profile['A'] #set variable to amplitude value
         lam = profile['wavelength'] #set variable to wavelength value
-        adhesionE = adhesion(length, thickness, lam, amp) #returns [adhesion energy, first term, second term, third term]
+        adhesionE = adhesion(length, thickness, lam, amp, strain) #returns [adhesion energy, first term, second term, third term]
         results.append({'A':amp, "wavelength":lam, "Adhesion energy":adhesionE[0] ,"length terms":adhesionE[1], "R2":profile['R2']}) #add calculated value to results list
     return results
 
-def fit_data_energy(data_matrix, pixel_width, length, thickness, progress_callback=None, log_callback=print):
+def fit_data_energy(data_matrix, pixel_width, length, thickness, strain, progress_callback=None, log_callback=print):
     """
     Defines a function that calls the fit_profiles function from ProfileFititng file to fit profiles in data matrix to peacewise function
     """
     profiles = fit_profiles(data_matrix, pixel_width, progress_callback=progress_callback, log_callback=log_callback)
-    return compute_energies(profiles, length, thickness)
+    return compute_energies(profiles, length, thickness, strain)
 
-def write_results(results, output_dir, input_file_stem, length, thickness):
+def write_results(results, output_dir, input_file_stem, length, thickness, strain):
     """
     Saves inputted results to a file for storage
     """
@@ -67,7 +67,7 @@ def write_results(results, output_dir, input_file_stem, length, thickness):
     mean_adhesion_energy = np.mean(AdhesionEnergies)
     
     #calls adhesion function using mean values
-    adhesion_energy_from_mean =  adhesion(length, thickness, mean_wavelength,mean_amplitude)
+    adhesion_energy_from_mean =  adhesion(length, thickness, mean_wavelength,mean_amplitude, strain)
     greatest_first_term = np.max(length_terms) #finds the largest length term
     mean_rsquared = np.mean(r2)
     largest_rsquared = np.max(r2)
@@ -89,7 +89,6 @@ def write_results(results, output_dir, input_file_stem, length, thickness):
 
 #hard coded values
 E = 5.7*10**9
-strain = 0.0255
 
 if __name__ == '__main__':
     """
@@ -107,8 +106,9 @@ if __name__ == '__main__':
     length = 10*10**(-6) #standard length
     pixel_width = float(input("Width of pixel(in microns)?:"))
     pixel_width *= 10**(-6)
+    strain = float(input("Strain?: "))
 
     data = np.loadtxt(input_file_Path)
-    result = fit_data_energy(data, pixel_width, length, thickness)
-    write_results(result, output_dir, input_file_stem, length, thickness)
+    result = fit_data_energy(data, pixel_width, length, thickness, strain)
+    write_results(result, output_dir, input_file_stem, length, thickness, strain)
 

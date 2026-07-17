@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
-
+afmDataProcessing/IntegralOutputs/
 afmDataProcessing/GUI/DataMatrices/
 afmDataProcessing/GUI/Outputs/
+afmDataProcessing/GUIOutputs

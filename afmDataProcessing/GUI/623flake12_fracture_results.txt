@@ -1,0 +1,7 @@
+For 623flake12_fracture:
+Mean amplitude: 3.27e-07 +/- 6.28e-09 
+Mean wavelength: 2.13e-06 +/- 8.15e-08
+Mean adhesion energy: 2.82e+00 +/- 3.68e-01
+Adhesion energy from means: 2.79e+00
+Greatest length term: 1.62e+01
+Mean R squared: 0.997 +/- 0.002 ; The largest R squared: 0.999

@@ -1,6 +1,0 @@
-For nflake3_sa.txt:
-Mean amplitude: 5.41e-07 +/- 4.26e-09 
-Mean wavelength: 4.56e-06 +/- 2.37e-08
-Mean adhesion energy: 2.37e-01 +/- 2.17e-02
-Adhesion energy from means: 2.37e-01
-Greatest length term: 1.95e-11

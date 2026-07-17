@@ -1,10 +1,13 @@
 """
 Direct batch evaluation of gamma(lambda, A, h) -- no caching/interpolation.
 
+Mirrors the method in Adhesionenergy.m: the bending-energy derivative
+is evaluated by numerically integrating I1/I2, and the membrane-energy
+derivative is evaluated in closed form via complete elliptic integrals
+(no small-slope approximation).
+
 Since gamma is only computed once per fitted dataset (10-50 datasets),
-direct numerical integration on each call is fast enough and more
-accurate than building an interpolation table. This just loops over
-your fitted (lambda, A, h) triples and integrates each one exactly.
+this direct evaluation on each call is fast enough.
 
 Plug this in after your existing JSON-loading code, which already
 gives you three lists: lam_list, A_list, h_list.
@@ -12,19 +15,20 @@ gives you three lists: lam_list, A_list, h_list.
 
 import numpy as np
 from scipy.integrate import quad
+from scipy.special import ellipe, ellipk
 
 # ------------------------------------------------------------------
 # PLACEHOLDER CONSTANTS -- edit these (everything that's fixed
 # across all datasets; h is NOT here since it varies per dataset)
 # ------------------------------------------------------------------
-E_val   = 1.0
-L_val   = 1.0
-rho_val = 1.0
-eps_val = 0.01
+E_val   = 5.7*10**9
+L_val   = 10*10**-6
+v_val   = 0.3
+eps_val = 0.0255
 
 
 # ------------------------------------------------------------------
-# Numeric integrands -- mirror I1, I2, J, K from gamma_equation.py
+# Numeric integrands -- mirror integrand1/integrand2 from Adhesionenergy.m
 # ------------------------------------------------------------------
 def _I1(lam, A):
     alpha = A * np.pi / lam
@@ -34,40 +38,35 @@ def _I1(lam, A):
 
 def _I2(lam, A):
     alpha = A * np.pi / lam
-    integrand = lambda u: np.sqrt(1 + alpha**2 * np.sin(u)**2)
-    val, _ = quad(integrand, 0, 2*np.pi)
-    return val
-
-def _J(lam, A):
-    alpha = A * np.pi / lam
-    integrand = lambda u: (np.cos(u)**2 * np.sin(u)**4) / (1 + alpha**2 * np.sin(u)**2)**4
-    val, _ = quad(integrand, 0, 2*np.pi)
-    return val
-
-def _K(lam, A):
-    alpha = A * np.pi / lam
-    integrand = lambda u: np.sin(u)**2 / np.sqrt(1 + alpha**2 * np.sin(u)**2)
+    integrand = lambda u: (np.cos(u)**2 * np.sin(u)**2) / (1 + alpha**2 * np.sin(u)**2)**4
     val, _ = quad(integrand, 0, 2*np.pi)
     return val
 
 
-def gamma_numeric(lam, A, h, E=E_val, L=L_val, rho=rho_val, eps=eps_val):
-    """Exact numeric evaluation of gamma for a single (lambda, A, h)."""
-    alpha = A * np.pi / lam
+def gamma_numeric(lam, A, h, E=E_val, L=L_val, v=v_val, eps=eps_val):
+    """Exact evaluation of gamma for a single (lambda, A, h), matching Adhesionenergy.m."""
+    eps = abs(eps)
+    E_bending = E / (1 - v**2)
 
+    # Bending-energy derivative (dUb_dl)
     I1 = _I1(lam, A)
-    J  = _J(lam, A)
-    term1 = -(E * h**3 * A * np.pi**3) / 12 * (
-        -3 * I1 / lam**4 + 6 * (alpha**2 / lam**4) * J
+    I2 = _I2(lam, A)
+    dUb_dl = (E_bending * h**3) / 12 * (
+        -3 * A**2 * np.pi**3 / lam**4 * I1
+        + 6 * A**4 * np.pi**5 / lam**6 * I2
     )
 
-    I2 = _I2(lam, A)
-    K  = _K(lam, A)
-    factor_a = ((lam / (2*np.pi)) * I2 - lam) / L - abs(eps)
-    factor_b = (1/L) * (I2/(2*np.pi) - (alpha**2/(2*np.pi)) * K - 1)
-    term2 = -E * rho * h * L * factor_a * factor_b
+    # Membrane-energy derivative (dUm_dl) via complete elliptic integrals
+    m = -(A**2 * np.pi**2) / lam**2
+    EllE = ellipe(m)
+    EllK = ellipk(m)
+    EllE_deriv = -lam**2 / (2 * A**2 * np.pi**2) * (EllE - EllK)
 
-    return term1 + term2
+    bracket1 = (2 * lam / np.pi * EllE - lam) / L - eps
+    bracket2 = 2 / np.pi * EllE + 4 * A**2 / lam**2 * EllE_deriv - 1
+    dUm_dl = E * h * bracket1 * bracket2
+
+    return -dUm_dl - dUb_dl
 
 
 def gamma_batch(lam_list, A_list, h_list, **fixed_constants):
@@ -76,7 +75,7 @@ def gamma_batch(lam_list, A_list, h_list, **fixed_constants):
 
     lam_list, A_list, h_list : equal-length sequences, one entry per
                                 dataset/profile.
-    fixed_constants          : optionally override E, L, rho, eps for
+    fixed_constants          : optionally override E, L, v, eps for
                                 all datasets, e.g. gamma_batch(..., L=2.0)
 
     Returns a numpy array of gamma values, same order as the inputs.
