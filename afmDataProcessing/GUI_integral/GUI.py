@@ -9,6 +9,10 @@ import numpy as np
 from ProfileFitting import fit_profiles
 from WrinkleProcessing import compute_energies as wrinkle_compute_energies, write_results as wrinkle_write_results
 from FractureMechanics import compute_energies as fracture_compute_energies, write_results as fracture_write_results
+from StatsPrune import prune_outliers, write_pruned_results
+from ResultsPlotting import plot_results
+
+WRINKLE_AE_THRESHOLD = 50  # hard cap for physically unreasonable data, matches StatsPrune.py
 
 LENGTH = 10e-6  # standard flake length in meters, matches WrinkleProcessing.py
 
@@ -44,14 +48,27 @@ def process_in_background(input_path, output_dir, thickness, pixel_width, run_wr
 
         if run_wrinkle:
             log("Computing wrinkle adhesion energy...")
+            stem = f"{input_path.stem}_wrinkle"
             results = wrinkle_compute_energies(profiles, LENGTH, thickness)
-            wrinkle_write_results(results, output_dir, f"{input_path.stem}_wrinkle", LENGTH, thickness)
+            wrinkle_write_results(results, output_dir, stem, LENGTH, thickness)
+            log("Detecting outliers...")
+            pruned = prune_outliers(results, WRINKLE_AE_THRESHOLD, log_callback=log)
+            write_pruned_results(pruned, output_dir, stem)
+            log("Plotting results...")
+            plot_results(results, pruned, output_dir, stem)
             log("Wrinkle analysis complete.")
 
         if run_fracture:
             log("Computing fracture mechanics adhesion energy...")
+            stem = f"{input_path.stem}_fracture"
             results = fracture_compute_energies(profiles, thickness)
-            fracture_write_results(results, output_dir, f"{input_path.stem}_fracture", thickness)
+            fracture_write_results(results, output_dir, stem, thickness)
+            log("Detecting outliers...")
+            ae_threshold = np.mean([r['Adhesion energy'] for r in results]) * 4
+            pruned = prune_outliers(results, ae_threshold, log_callback=log)
+            write_pruned_results(pruned, output_dir, stem)
+            log("Plotting results...")
+            plot_results(results, pruned, output_dir, stem)
             log("Fracture mechanics analysis complete.")
 
         gui_queue.put(('done', str(output_dir)))
