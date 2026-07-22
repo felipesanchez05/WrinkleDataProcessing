@@ -1,0 +1,7 @@
+For 717flake102_wrinkle:
+Mean amplitude: 1.53e-07 +/- 1.05e-08 
+Mean wavelength: 1.07e-06 +/- 7.13e-08
+Mean adhesion energy: 2.42e+00 +/- 4.11e-01
+Adhesion energy from means: 2.38e+00
+Greatest length term: 2.80e-13
+Mean R squared: 0.991 +/- 0.003 ; The largest R squared: 0.995

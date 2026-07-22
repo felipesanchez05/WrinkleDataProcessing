@@ -1,0 +1,7 @@
+For PPntflake1_4_fracture:
+Mean amplitude: 5.01e-08 +/- 4.81e-09 
+Mean wavelength: 2.15e-06 +/- 5.56e-08
+Mean adhesion energy: 2.43e-01 +/- 5.11e-02
+Adhesion energy from means: 2.39e-01
+Greatest length term: 1.62e+01
+Mean R squared: 0.995 +/- 0.002 ; The largest R squared: 0.999

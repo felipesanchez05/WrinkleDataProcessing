@@ -1,0 +1,7 @@
+For 717flake61_fracture:
+Mean amplitude: 7.18e-08 +/- 5.26e-09 
+Mean wavelength: 4.03e-07 +/- 3.71e-08
+Mean adhesion energy: 9.64e+00 +/- 2.31e+00
+Adhesion energy from means: 9.26e+00
+Greatest length term: 1.62e+01
+Mean R squared: 0.995 +/- 0.003 ; The largest R squared: 0.999

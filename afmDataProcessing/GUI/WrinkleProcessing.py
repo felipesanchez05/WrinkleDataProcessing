@@ -20,7 +20,7 @@ def adhesion(length, thickness, wvlength, amplitude, strain):
     """
     aEnergy_1stTerm = ( (pi**4) * (amplitude**4) * (E)* thickness) / (16 * (wvlength) * length)
     aEnergy_2ndTerm = ( (strain) * (pi**2) * (amplitude**2) * E * thickness ) / (4 * (wvlength**2))
-    aEnergy_3rdTerm = ( (pi**4) * (amplitude**2) * E * (thickness**3)) / (4 * wvlength**4)
+    aEnergy_3rdTerm = ( (pi**4) * (amplitude**2) * E * (thickness**3)) / (4 * wvlength**4)*(1-0.3**2) 
 
     adhesion_energy = aEnergy_1stTerm - aEnergy_2ndTerm + aEnergy_3rdTerm
     return adhesion_energy,aEnergy_1stTerm, aEnergy_2ndTerm,aEnergy_3rdTerm

@@ -1,0 +1,7 @@
+For PPntflake1_3_wrinkle:
+Mean amplitude: -2.98e-08 +/- 3.82e-09 
+Mean wavelength: 5.66e-07 +/- 2.76e-08
+Mean adhesion energy: 2.41e+01 +/- 5.42e+00
+Adhesion energy from means: 2.39e+01
+Greatest length term: 4.11e-15
+Mean R squared: 0.697 +/- 0.025 ; The largest R squared: 0.746
