@@ -1,0 +1,7 @@
+For ppw3a2_wrinkle:
+Mean amplitude: 1.16e-08 +/- 3.94e-09 
+Mean wavelength: 8.64e-07 +/- 2.21e-07
+Mean adhesion energy: 7.07e-01 +/- 2.20e-01
+Adhesion energy from means: 6.55e-01
+Greatest length term: 1.21e-16
+Mean R squared: 0.986 +/- 0.004 ; The largest R squared: 0.992

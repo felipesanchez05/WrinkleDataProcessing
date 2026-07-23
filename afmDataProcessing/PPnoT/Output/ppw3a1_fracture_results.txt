@@ -1,0 +1,7 @@
+For ppw3a1_fracture:
+Mean amplitude: 3.90e-08 +/- 3.49e-09 
+Mean wavelength: 1.53e-06 +/- 3.80e-08
+Mean adhesion energy: 5.80e-01 +/- 1.19e-01
+Adhesion energy from means: 5.71e-01
+Greatest length term: 1.62e+01
+Mean R squared: 0.997 +/- 0.003 ; The largest R squared: 0.999
