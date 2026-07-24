@@ -26,7 +26,7 @@ def adhesion(length, thickness, wvlength, amplitude, strain):
     return adhesion_energy,aEnergy_1stTerm, aEnergy_2ndTerm,aEnergy_3rdTerm
 
 
-def compute_energies(profiles, length, thickness, strain):
+def compute_energies(profiles, length, thickness, strain, r2_threshold=0.88):
     """
     Function takes as input the fitted profile paramters from curve fitting to compute adhesion energy
     Profiles input is a list of dictionaries
@@ -36,15 +36,16 @@ def compute_energies(profiles, length, thickness, strain):
         amp = profile['A'] #set variable to amplitude value
         lam = profile['wavelength'] #set variable to wavelength value
         adhesionE = adhesion(length, thickness, lam, amp, strain) #returns [adhesion energy, first term, second term, third term]
-        results.append({'A':amp, "wavelength":lam, "Adhesion energy":adhesionE[0] ,"length terms":adhesionE[1], "R2":profile['R2']}) #add calculated value to results list
+        if profile['R2'] > r2_threshold:
+            results.append({'A':amp, "wavelength":lam, "Adhesion energy":adhesionE[0] ,"length terms":adhesionE[1], "R2":profile['R2']}) #add calculated value to results list
     return results
 
-def fit_data_energy(data_matrix, pixel_width, length, thickness, strain, progress_callback=None, log_callback=print):
+def fit_data_energy(data_matrix, pixel_width, length, thickness, strain, r2_threshold=0.88, progress_callback=None, log_callback=print):
     """
     Defines a function that calls the fit_profiles function from ProfileFititng file to fit profiles in data matrix to peacewise function
     """
     profiles = fit_profiles(data_matrix, pixel_width, progress_callback=progress_callback, log_callback=log_callback)
-    return compute_energies(profiles, length, thickness, strain)
+    return compute_energies(profiles, length, thickness, strain, r2_threshold)
 
 def write_results(results, output_dir, input_file_stem, length, thickness, strain):
     """
@@ -70,7 +71,7 @@ def write_results(results, output_dir, input_file_stem, length, thickness, strai
     adhesion_energy_from_mean =  adhesion(length, thickness, mean_wavelength,mean_amplitude, strain)
     greatest_first_term = np.max(length_terms) #finds the largest length term
     mean_rsquared = np.mean(r2)
-    largest_rsquared = np.max(r2)
+    smallest_rsquared = np.min(r2)
     
     #The block creates andwrites results 
     with open(output_dir/ f'{input_file_stem}_fit_results.json','w') as f:
@@ -85,7 +86,7 @@ def write_results(results, output_dir, input_file_stem, length, thickness, strai
         f.write(f"Mean adhesion energy: {mean_adhesion_energy:.2e} +/- {np.std(AdhesionEnergies):.2e}\n")
         f.write(f"Adhesion energy from means: {adhesion_energy_from_mean[0]:.2e}\n")
         f.write(f"Greatest length term: {greatest_first_term:.2e}\n")
-        f.write(f"Mean R squared: {mean_rsquared:.3f} +/- {np.std(r2):.3f} ; The largest R squared: {largest_rsquared:.3f}\n")
+        f.write(f"Mean R squared: {mean_rsquared:.3f} +/- {np.std(r2):.3f} ; The smallest R squared: {smallest_rsquared:.3f}\n")
 
 #hard coded values
 E = 5.7*10**9
